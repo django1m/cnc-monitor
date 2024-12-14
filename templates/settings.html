@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Paramètres</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ajouter une machine CNC</h5>
+                <form id="addMachineForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom de la machine</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ip_address" class="form-label">Adresse IP</label>
+                        <input type="text" class="form-control" id="ip_address" required pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Machines configurées</h5>
+                <div class="list-group">
+                    {% for machine in machines %}
+                    <div class="list-group-item">
+                        <h6 class="mb-1">{{ machine.name }}</h6>
+                        <p class="mb-1">IP: {{ machine.ip_address }}</p>
+                        <small>
+                            Horaires: {{ machine.working_hours_start }} - {{ machine.working_hours_end }}
+                            <button class="btn btn-sm btn-outline-primary float-end" 
+                                    onclick="editMachine({{ machine.id }}, '{{ machine.name }}', '{{ machine.ip_address }}', 
+                                             '{{ machine.working_hours_start }}', '{{ machine.working_hours_end }}', 
+                                             '{{ machine.working_days }}')">
+                                Modifier
+                            </button>
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour éditer une machine -->
+<div class="modal fade" id="editMachineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier la machine</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMachineForm">
+                    <input type="hidden" id="edit_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Nom de la machine</label>
+                        <input type="text" class="form-control" id="edit_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_ip_address" class="form-label">Adresse IP</label>
+                        <input type="text" class="form-control" id="edit_ip_address" required pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_working_hours_start" class="form-label">Début des heures de travail</label>
+                        <input type="time" class="form-control" id="edit_working_hours_start" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_working_hours_end" class="form-label">Fin des heures de travail</label>
+                        <input type="time" class="form-control" id="edit_working_hours_end" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jours de travail</label>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="0" id="monday">
+                            <label class="form-check-label" for="monday">Lundi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="1" id="tuesday">
+                            <label class="form-check-label" for="tuesday">Mardi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="2" id="wednesday">
+                            <label class="form-check-label" for="wednesday">Mercredi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="3" id="thursday">
+                            <label class="form-check-label" for="thursday">Jeudi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="4" id="friday">
+                            <label class="form-check-label" for="friday">Vendredi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="5" id="saturday">
+                            <label class="form-check-label" for="saturday">Samedi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input working-day" type="checkbox" value="6" id="sunday">
+                            <label class="form-check-label" for="sunday">Dimanche</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="updateMachine()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('addMachineForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('{{ url_for("settings") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'add_machine',
+            name: document.getElementById('name').value,
+            ip_address: document.getElementById('ip_address').value
+        })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        }
+    });
+});
+
+function editMachine(id, name, ip, start, end, days) {
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_ip_address').value = ip;
+    document.getElementById('edit_working_hours_start').value = start;
+    document.getElementById('edit_working_hours_end').value = end;
+    
+    // Reset all checkboxes
+    document.querySelectorAll('.working-day').forEach(cb => cb.checked = false);
+    
+    // Check the working days
+    const workingDays = days.split(',');
+    workingDays.forEach(day => {
+        const checkbox = document.querySelector(`.working-day[value="${day}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+    
+    new bootstrap.Modal(document.getElementById('editMachineModal')).show();
+}
+
+function updateMachine() {
+    const workingDays = Array.from(document.querySelectorAll('.working-day'))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value)
+        .join(',');
+        
+    fetch('{{ url_for("settings") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'update_machine',
+            id: document.getElementById('edit_id').value,
+            name: document.getElementById('edit_name').value,
+            ip_address: document.getElementById('edit_ip_address').value,
+            working_hours_start: document.getElementById('edit_working_hours_start').value,
+            working_hours_end: document.getElementById('edit_working_hours_end').value,
+            working_days: workingDays
+        })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

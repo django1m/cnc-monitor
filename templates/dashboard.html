@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Tableau de bord</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% for machine in machines %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ machine.name }}</h5>
+                <div class="mb-3">
+                    <canvas id="chart_{{ machine.id }}"></canvas>
+                </div>
+                <div class="text-muted">
+                    <p class="mb-1">Taux d'occupation: {{ kpis[machine.name]['occupation_rate'] }}%</p>
+                    <p class="mb-1">Jobs totaux: {{ kpis[machine.name]['total_jobs'] }}</p>
+                    <p class="mb-0">Temps total: {{ kpis[machine.name]['total_time'] }} heures</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for machine in machines %}
+    new Chart(document.getElementById('chart_{{ machine.id }}').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Occupation', 'Inactif'],
+            datasets: [{
+                data: [{{ kpis[machine.name]['occupation_rate'] }}, {{ 100 - kpis[machine.name]['occupation_rate'] }}],
+                backgroundColor: ['#4723D9', '#E9ECEF']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    {% endfor %}
+});
+</script>
+{% endblock %}
